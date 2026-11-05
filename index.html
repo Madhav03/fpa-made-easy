@@ -111,20 +111,81 @@ function buildApp() {
 }
 
 function buildHome() {
-  var div=h("div",{style:{display:"grid",gap:"12px"}});
-  MODULES.forEach(function(m){
-    var done=S.mastered[m.id];
-    (function(m,done){
-      var card=mkbtn("",{textAlign:"left",background:C.card,border:"1.5px solid "+(done?"#a8d5b8":C.border),borderRadius:"14px",padding:"16px",display:"flex",alignItems:"center",gap:"14px",width:"100%"},function(){S.openId=m.id;S.tab="lessons";S.quiz={};render();});
-      var icon=h("div",{style:{width:"44px",height:"44px",borderRadius:"10px",flexShrink:"0",background:done?C.greenBg:"#f0ece4",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"16px"}},done?"[OK]":"[>>]");
-      var info=h("div",{style:{flex:"1"}});
-      info.appendChild(h("div",{style:{fontWeight:"700",fontSize:"15px"}},m.title));
-      info.appendChild(h("div",{style:{fontSize:"13px",color:C.muted,marginTop:"2px"}},m.lessons.length+" lessons / "+m.quiz.length+" questions"));
-      card.appendChild(icon); card.appendChild(info); card.appendChild(h("div",{style:{fontSize:"18px",color:C.muted}},">"));
-      div.appendChild(card);
-    })(m,done);
+  var wrap=h("div",{});
+
+  var THEMES=[
+    {label:"FP\x26A Foundations",emoji:"🏗️",ids:["what-is-fpa","corporate-vs-bu","budget-vs-forecast","strategic-lrp","three-statements","variance","kpis","modelling"]},
+    {label:"Analysis \x26 Decision-Making",emoji:"🔬",ids:["scenario","cashflow","operating-leverage","profitability-cost-analysis","financial-ratios-kpis"]},
+    {label:"Reporting \x26 Performance",emoji:"📊",ids:["month-end","management-reporting-cfo-pack","performance-management","board-investor-communication","benchmarking-competitive-analysis"]},
+    {label:"Business Partnering",emoji:"🤝",ids:["understand-business","partnering","toolkit","startups-vs-enterprises"]},
+    {label:"Data \x26 Technology",emoji:"💻",ids:["excel","messy-data","data-foundations","visualisation"]},
+    {label:"Strategy \x26 Transactions",emoji:"♟️",ids:["strategic-long-range-planning","cost-of-capital","capital-investment","business-valuation","mergers-acquisitions"]},
+    {label:"Global \x26 Specialist Topics",emoji:"🌐",ids:["transfer-pricing","gcc-offshore-fpa","fx-currency-risk","taxation-in-fpa","incentives-sezs-tax-planning","tax-incentives-etr","working-capital-management"]},
+    {label:"Controls \x26 Compliance",emoji:"🔒",ids:["financial-close-controls","esg-non-financial","taxation-in-fpa"]},
+    {label:"AI \x26 the Future of FP\x26A",emoji:"🤖",ids:["ai-in-fpa"]},
+    {label:"Career \x26 Landscape",emoji:"🚀",ids:["modern-landscape","career","transfer-pricing-interco"]}
+  ];
+
+  // Build id->module map
+  var modMap={};
+  MODULES.forEach(function(m){modMap[m.id]=m;});
+
+  var accents=["#4f7cff","#e07b39","#2eaa71","#9b5cf6","#e04b7a","#1aacb0","#c08b2f","#5a7dd1"];
+
+  THEMES.forEach(function(theme,ti){
+    // Collect modules for this theme (skip missing ids gracefully)
+    var mods=theme.ids.map(function(id){return modMap[id];}).filter(Boolean);
+    if(!mods.length)return;
+
+    // Theme header
+    var themeAccent=accents[ti%accents.length];
+    var hdr=h("div",{style:{display:"flex",alignItems:"center",gap:"10px",margin:"24px 0 12px",paddingBottom:"8px",borderBottom:"2px solid "+themeAccent}});
+    hdr.appendChild(h("span",{style:{fontSize:"20px"}},theme.emoji));
+    hdr.appendChild(h("span",{style:{fontWeight:"700",fontSize:"16px",color:C.text}},theme.label));
+    var doneCount=mods.filter(function(m){return S.mastered[m.id];}).length;
+    hdr.appendChild(h("span",{style:{marginLeft:"auto",fontSize:"12px",color:C.muted,fontWeight:"600"}},doneCount+"/"+mods.length));
+    wrap.appendChild(hdr);
+
+    // Grid
+    var grid=h("div",{style:{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(240px,1fr))",gap:"12px"}});
+
+    mods.forEach(function(m){
+      var done=S.mastered[m.id];
+      (function(m,done){
+        var card=mkbtn("",{
+          textAlign:"left",background:C.card,
+          border:"2px solid "+(done?"#2eaa71":C.border),
+          borderRadius:"14px",padding:"0",width:"100%",overflow:"hidden",
+          display:"flex",flexDirection:"column",cursor:"pointer",
+          boxShadow:"0 1px 4px rgba(0,0,0,0.06)"
+        },function(){S.openId=m.id;S.tab="lessons";S.quiz={};render();});
+
+        // Top colour band
+        card.appendChild(h("div",{style:{height:"5px",background:done?"#2eaa71":themeAccent,width:"100%"}}));
+
+        var body=h("div",{style:{padding:"12px 14px 14px",flex:"1",display:"flex",flexDirection:"column",gap:"5px"}});
+
+        // Title + done badge
+        var titleRow=h("div",{style:{display:"flex",alignItems:"flex-start",gap:"6px"}});
+        if(done){titleRow.appendChild(h("span",{style:{flexShrink:"0",marginTop:"2px",fontSize:"10px",fontWeight:"700",background:"#d4f0e2",color:"#1a7a4a",borderRadius:"5px",padding:"1px 5px"}},"✓"));}
+        titleRow.appendChild(h("div",{style:{fontWeight:"700",fontSize:"13px",lineHeight:"1.3"}},m.title));
+        body.appendChild(titleRow);
+
+        if(m.blurb){body.appendChild(h("div",{style:{fontSize:"11px",color:C.muted,lineHeight:"1.5",flex:"1"}},m.blurb));}
+
+        var footer=h("div",{style:{display:"flex",gap:"8px",marginTop:"8px",paddingTop:"8px",borderTop:"1px solid "+C.border}});
+        footer.appendChild(h("span",{style:{fontSize:"11px",color:C.muted,fontWeight:"600"}},m.lessons.length+" lessons"));
+        footer.appendChild(h("span",{style:{fontSize:"11px",color:C.muted,fontWeight:"600"}},m.quiz.length+" Qs"));
+        body.appendChild(footer);
+
+        card.appendChild(body);
+        grid.appendChild(card);
+      })(m,done);
+    });
+    wrap.appendChild(grid);
   });
-  return div;
+
+  return wrap;
 }
 
 function buildModule(mod) {
